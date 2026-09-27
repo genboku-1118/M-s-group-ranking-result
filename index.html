@@ -25,6 +25,32 @@ header{text-align:center;margin:8px 0 18px}h1{margin:0;font-size:34px}.sub{color
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#171717;color:white;padding:10px 15px;border-radius:11px;z-index:20}
 @media(max-width:640px){.wrap{padding:10px 7px 25px}.panel{padding:11px}.choices{gap:7px}.choice{padding:6px}.choice .name{font-size:17px}.podium{gap:4px}.rank{font-size:19px}.first .rank{font-size:23px}.nm{font-size:13px}.results-grid{gap:0 3px}.row{gap:2px;padding:3px 0}.num{width:24px;font-size:10px}.thumb{width:25px;height:25px}.rname{font-size:11px}}
 </style>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBEWyTJ3oTvy4RptcgfN0bDaPgL_URtmdY",
+  authDomain: "m-s-group-ranking-result.firebaseapp.com",
+  projectId: "m-s-group-ranking-result",
+  storageBucket: "m-s-group-ranking-result.firebasestorage.app",
+  messagingSenderId: "508223378385",
+  appId: "1:508223378385:web:ee860981fec4279b3886f0",
+  measurementId: "G-87RDP126L5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+window.saveRankingToFirebase = async (names) => {
+  await addDoc(collection(db, "rankings"), {
+    ranking: names,
+    createdAt: serverTimestamp()
+  });
+};
+</script>
+
 </head>
 <body>
 <div class="wrap">
@@ -241,8 +267,22 @@ async function startGame(){
 }
 
 /* ===== 結果 ===== */
+async function submitCompletedRanking(){
+ const names=ranking.map(p=>p.name);
+ try{
+   for(let n=0;n<10 && typeof window.saveRankingToFirebase!=="function";n++){
+     await new Promise(resolve=>setTimeout(resolve,200));
+   }
+   if(typeof window.saveRankingToFirebase!=="function") throw new Error("Firebase未準備");
+   await window.saveRankingToFirebase(names);
+   console.log("ランキング結果をFirestoreへ保存しました");
+ }catch(e){
+   console.error("Firestoreへの保存に失敗しました",e);
+ }
+}
 function showResult(){
  $("game").classList.add("hidden");$("result").classList.remove("hidden");
+ submitCompletedRanking();
  const podium=$("podium");podium.innerHTML="";
  [[1,"second"],[0,"first"],[2,"third"]].forEach(([idx,cls])=>{
    const p=ranking[idx],d=document.createElement("div");d.className="place "+cls;
