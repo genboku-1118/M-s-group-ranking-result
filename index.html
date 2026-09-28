@@ -43,9 +43,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-window.saveRankingToFirebase = async (names) => {
+window.saveRankingToFirebase = async (names, nickname) => {
   await addDoc(collection(db, "rankings"), {
     ranking: names,
+    nickname: nickname || "",
     createdAt: serverTimestamp()
   });
 };
@@ -59,6 +60,11 @@ window.saveRankingToFirebase = async (names) => {
 <section id="start" class="panel start">
 <h2>あなたの好みランキングを作ろう</h2>
 <p class="sub">15人の写真を2人ずつ比較して順位を作ります。</p>
+<div style="max-width:360px;margin:22px auto 16px;text-align:left">
+<label for="nickname" style="display:block;font-weight:800;margin-bottom:7px">ニックネーム <span style="font-weight:400;color:#777;font-size:13px">（任意）</span></label>
+<input id="nickname" type="text" maxlength="30" placeholder="未入力の場合は匿名" style="width:100%;padding:12px 14px;border:1px solid #d8d8d8;border-radius:12px;font:inherit">
+<div style="font-size:12px;color:#777;margin-top:6px">結果を見分けるために使用します（最大30文字）</div>
+</div>
 <button id="startBtn" class="primary">ランキングを始める</button>
 <div id="loading" class="loading hidden">15枚の写真を読み込み中…</div>
 </section>
@@ -102,6 +108,7 @@ const imageCache=new Map();
 let state=null;
 let history=[];
 let ranking=[];
+let currentNickname="";
 
 /* ===== 画像をゲーム開始前に全て読み込む ===== */
 async function preload(){
@@ -254,6 +261,7 @@ function undo(){
 
 /* ===== 開始 ===== */
 async function startGame(){
+ currentNickname=$("nickname").value.trim().slice(0,30);
  $("startBtn").disabled=true;$("loading").classList.remove("hidden");
  try{
    await preload();
@@ -274,7 +282,7 @@ async function submitCompletedRanking(){
      await new Promise(resolve=>setTimeout(resolve,200));
    }
    if(typeof window.saveRankingToFirebase!=="function") throw new Error("Firebase未準備");
-   await window.saveRankingToFirebase(names);
+   await window.saveRankingToFirebase(names, currentNickname);
    console.log("ランキング結果をFirestoreへ保存しました");
  }catch(e){
    console.error("Firestoreへの保存に失敗しました",e);
